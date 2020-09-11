@@ -3,7 +3,7 @@ const supertest = require('supertest');
 const express = require('express');
 const Agenda = require('agenda');
 
-const agenda = new Agenda().database('mongodb://127.0.0.1/agendash-test-db', 'agendash-test-collection');
+const agenda = new Agenda().database('mongodb://127.0.0.1/agendash-test-db', 'agendash-test-collection', {useNewUrlParser: true, useUnifiedTopology: true});
 
 const app = express();
 app.use('/', require('../app')(agenda));
@@ -40,7 +40,7 @@ test.serial('POST /api/jobs/create should confirm the job exists', async t => {
   t.true('created' in res.body);
 
   agenda._collection.count({}, null, (err, res) => {
-    t.ifError(err);
+    t.falsy(err);
     if (res !== 1) {
       throw new Error('Expected one document in database');
     }

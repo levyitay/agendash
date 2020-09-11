@@ -1,15 +1,15 @@
 const test = require('ava');
 const supertest = require('supertest');
-const Hapi = require('hapi');
+const Hapi = require('@hapi/hapi');
 const Agenda = require('agenda');
 
-const agenda = new Agenda().database('mongodb://127.0.0.1/agendash-test-db', 'agendash-test-collection');
+const agenda = new Agenda().database('mongodb://127.0.0.1/agendash-test-db', 'agendash-test-collection', {useNewUrlParser: true, useUnifiedTopology: true});
 
 const server = Hapi.server({
   port: 3000,
   host: 'localhost'
 });
-server.register(require('inert'));
+server.register(require('@hapi/inert'));
 server.register(require('../app')(agenda, {
   middleware: 'hapi'
 }));
@@ -35,18 +35,18 @@ test.serial('GET /api with no jobs should return the correct overview', async t 
 
 test.serial('POST /api/jobs/create should confirm the job exists', async t => {
   const res = await request.post('/api/jobs/create')
-  .send({
-    jobName: 'Test Job',
-    jobSchedule: 'in 2 minutes',
-    jobRepeatEvery: '',
-    jobData: {}
-  })
-  .set('Accept', 'application/json');
+    .send({
+      jobName: 'Test Job',
+      jobSchedule: 'in 2 minutes',
+      jobRepeatEvery: '',
+      jobData: {}
+    })
+    .set('Accept', 'application/json');
 
   t.true('created' in res.body);
 
   agenda._collection.count({}, null, (err, res) => {
-    t.ifError(err);
+    t.falsy(err);
     if (res !== 1) {
       throw new Error('Expected one document in database');
     }
@@ -56,21 +56,21 @@ test.serial('POST /api/jobs/create should confirm the job exists', async t => {
 test.serial('POST /api/jobs/delete should delete the job', async t => {
   const job = await new Promise((resolve, reject) => {
     agenda.create('Test Job', {})
-    .schedule('in 4 minutes')
-    .save()
-    .then(job => {
-      resolve(job);
-    })
-    .catch(err => {
-      reject(err);
-    });
+      .schedule('in 4 minutes')
+      .save()
+      .then(job => {
+        resolve(job);
+      })
+      .catch(err => {
+        reject(err);
+      });
   });
 
   const res = await request.post('/api/jobs/delete')
-  .send({
-    jobIds: [job.attrs._id]
-  })
-  .set('Accept', 'application/json');
+    .send({
+      jobIds: [job.attrs._id]
+    })
+    .set('Accept', 'application/json');
 
   t.true('deleted' in res.body);
 
@@ -81,21 +81,21 @@ test.serial('POST /api/jobs/delete should delete the job', async t => {
 test.serial('POST /api/jobs/requeue should requeue the job', async t => {
   const job = await new Promise((resolve, reject) => {
     agenda.create('Test Job', {})
-    .schedule('in 4 minutes')
-    .save()
-    .then(job => {
-      resolve(job);
-    })
-    .catch(err => {
-      reject(err);
-    });
+      .schedule('in 4 minutes')
+      .save()
+      .then(job => {
+        resolve(job);
+      })
+      .catch(err => {
+        reject(err);
+      });
   });
 
   const res = await request.post('/api/jobs/requeue')
-  .send({
-    jobIds: [job.attrs._id]
-  })
-  .set('Accept', 'application/json');
+    .send({
+      jobIds: [job.attrs._id]
+    })
+    .set('Accept', 'application/json');
 
   t.false('newJobs' in res.body);
 
